@@ -418,7 +418,7 @@
     } else if (order.status === 'rejected') {
       stopStatusCheck();
       hidePayment();
-      alert('❌ 订单未通过审核\n原因：' + (order.rejectReason || '支付信息不匹配'));
+      alert('❌ 订单未通过审核\n原因：' + (order.reject_reason || '支付信息不匹配'));
     }
   }
 
@@ -723,7 +723,7 @@
         pendingHtml += '<div class="ao-user">👤 购买者：' + escHtml(o.username) + '</div></div>';
         pendingHtml += '<div style="font-weight:bold;color:#E74C3C">¥' + o.price + '</div></div>';
         pendingHtml += '<div class="ao-meta">📦 订单号：' + o.order_id + '</div>';
-        pendingHtml += '<div class="ao-meta">🕐 ' + (o.createdAt ? new Date(o.createdAt).toLocaleString('zh-CN') : '') + '</div>';
+        pendingHtml += '<div class="ao-meta">🕐 ' + (o.created_at ? new Date(o.created_at).toLocaleString('zh-CN') : '') + '</div>';
         pendingHtml += '<div class="ao-actions">';
         pendingHtml += '<button class="btn-reject" data-action="reject" data-order="' + o.order_id + '">拒绝</button>';
         pendingHtml += '<button class="btn-approve" data-action="approve" data-order="' + o.order_id + '">✓ 确认收款</button>';
@@ -739,7 +739,7 @@
     processedOrders.forEach(function(o) {
       var stClass = o.status === 'paid' ? 'paid' : 'rejected';
       var stText = o.status === 'paid' ? '✅ 已确认' : '❌ 已拒绝';
-      var vTime = o.verifiedAt ? new Date(o.verifiedAt).toLocaleString('zh-CN') : '';
+      var vTime = o.verified_at ? new Date(o.verified_at).toLocaleString('zh-CN') : '';
       processedHtml += '<div class="order-list-item" style="flex-direction:column;align-items:stretch;">';
       processedHtml += '<div style="display:flex;justify-content:space-between;align-items:center;">';
       processedHtml += '<div class="ol-info">';
@@ -751,8 +751,8 @@
       processedHtml += '<div style="font-size:11px;color:#bbb;margin-top:6px;padding-top:6px;border-top:1px solid #f5f5f5;">';
       processedHtml += '📦 订单号：<span style="color:#666;word-break:break-all;">' + escHtml(o.order_id) + '</span>';
       if (vTime) processedHtml += ' · 🕐 ' + vTime;
-      if (o.verifiedBy) processedHtml += ' · 审核人：' + escHtml(o.verifiedBy);
-      if (o.status === 'rejected' && o.rejectReason) processedHtml += ' · 原因：' + escHtml(o.rejectReason);
+      if (o.verified_by) processedHtml += ' · 审核人：' + escHtml(o.verified_by);
+      if (o.status === 'rejected' && o.reject_reason) processedHtml += ' · 原因：' + escHtml(o.reject_reason);
       processedHtml += '</div></div>';
     });
     document.getElementById('admin-processed-list').innerHTML = processedHtml;
