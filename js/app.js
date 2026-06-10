@@ -53,7 +53,7 @@
     document.getElementById('top-nav').style.display = 'flex';
     document.getElementById('nav-username').textContent = user.username;
 
-    if (user.isAdmin) {
+    if (user.is_admin) {
       document.getElementById('nav-role').textContent = '管理员';
       document.getElementById('btn-admin').style.display = 'inline';
     } else {
@@ -255,7 +255,7 @@
     container.innerHTML = html;
 
     container.querySelectorAll('.book-item').forEach(function(item) {
-      item.addEventListener('click', function() { showDetail(this.dataset.bookId); });
+      item.addEventListener('click', function() { showDetail(this.dataset.book_id); });
     });
   }
 
@@ -349,14 +349,14 @@
 
     document.getElementById('pay-book-title').textContent = book.title;
     document.getElementById('pay-price').textContent = (book.price || '0.99');
-    document.getElementById('pay-order-id').textContent = order.orderId;
+    document.getElementById('pay-order-id').textContent = order.order_id;
     document.getElementById('btn-paid-price').textContent = (book.price || '0.99');
     document.getElementById('payment-step-1').style.display = 'block';
     document.getElementById('payment-step-2').style.display = 'none';
     document.getElementById('modal-payment').style.display = 'flex';
 
     // 存储当前订单号用于状态查询
-    window._pendingOrderId = order.orderId;
+    window._pendingOrderId = order.order_id;
   }
 
   function hidePayment() {
@@ -400,15 +400,18 @@
     var orderId = window._pendingOrderId;
     if (!orderId) return;
 
+    // 先从云端拉取最新数据
+    Store.cloudRefresh();
+
     var orders = Store.getAllOrders();
-    var order = orders.find(function(o) { return o.orderId === orderId; });
+    var order = orders.find(function(o) { return o.order_id === orderId; });
 
     if (!order) return;
 
     if (order.status === 'paid') {
       stopStatusCheck();
       hidePayment();
-      alert('✅ 管理员已确认收款！\n《' + order.bookTitle + '》已加入您的书架。');
+      alert('✅ 管理员已确认收款！\n《' + order.book_title + '》已加入您的书架。');
       updateBookshelfBadge();
       // 刷新当前视图
       if (currentTab === 'bookshelf') renderBookshelf();
@@ -437,14 +440,14 @@
     var paidPurchases = purchases.filter(function(p) { return p.status === 'paid'; });
     var html = '';
     paidPurchases.forEach(function(p) {
-      var book = allBooks.find(function(b) { return (b._id||b.id) === p.bookId; });
-      var progress = Store.getProgress(p.bookId);
+      var book = allBooks.find(function(b) { return (b._id||b.id) === p.book_id; });
+      var progress = Store.getProgress(p.book_id);
       var pct = 0, chInfo = '';
       if (progress && book) {
-        pct = Math.round((progress.chapterIndex / book.chapterCount) * 100);
-        chInfo = '已读' + (progress.chapterIndex + 1) + '/' + book.chapterCount + '章';
+        pct = Math.round((progress.chapter_index / book.chapterCount) * 100);
+        chInfo = '已读' + (progress.chapter_index + 1) + '/' + book.chapterCount + '章';
       }
-      html += '<div class="shelf-item" data-book-id="' + p.bookId + '">';
+      html += '<div class="shelf-item" data-book-id="' + p.book_id + '">';
       html += '<div class="shelf-cover-w">';
       html += '<div class="cover-placeholder">📕</div>';
       if (pct > 0) html += '<div class="shelf-progress-bar"><div class="shelf-progress-fill" style="width:' + pct + '%"></div></div>';
@@ -459,12 +462,12 @@
 
     grid.querySelectorAll('.shelf-item').forEach(function(item) {
       item.onclick = function() {
-        var bid = this.dataset.bookId;
+        var bid = this.dataset.book_id;
         currentBook = Store.getAllBooks().find(function(b) { return (b._id||b.id) === bid; });
         if (!currentBook) return;
         var progress = Store.getProgress(bid);
         loadChaptersForBook(currentBook, function() {
-          openReader(progress ? progress.chapterIndex : 0);
+          openReader(progress ? progress.chapter_index : 0);
         });
       };
     });
@@ -489,8 +492,8 @@
       var statusText = { pending_verification: '⏳ 等待审核', paid: '✅ 已确认', rejected: '❌ 已拒绝' };
       html += '<div class="order-list-item">';
       html += '<div class="ol-info">';
-      html += '<div class="ol-book">' + escHtml(o.bookTitle) + '</div>';
-      html += '<div class="ol-meta">¥' + o.price + ' · ' + o.orderId + '</div>';
+      html += '<div class="ol-book">' + escHtml(o.book_title) + '</div>';
+      html += '<div class="ol-meta">¥' + o.price + ' · ' + o.order_id + '</div>';
       html += '</div>';
       html += '<div class="ol-status pending">' + (statusText[o.status] || o.status) + '</div>';
       html += '</div>';
@@ -513,9 +516,9 @@
     var bid = book._id || book.id || '1';
     var progress = Store.getProgress(bid);
     var startIdx = 0;
-    if (progress && progress.chapterIndex > 0) {
-      if (confirm('从上次位置（第' + (progress.chapterIndex + 1) + '章）继续？点击取消从头开始。')) {
-        startIdx = progress.chapterIndex;
+    if (progress && progress.chapter_index > 0) {
+      if (confirm('从上次位置（第' + (progress.chapter_index + 1) + '章）继续？点击取消从头开始。')) {
+        startIdx = progress.chapter_index;
       }
     }
     loadChaptersForBook(currentBook, function() {
@@ -714,16 +717,16 @@
     } else {
       document.getElementById('admin-empty').style.display = 'none';
       pendingOrders.forEach(function(o) {
-        pendingHtml += '<div class="admin-order-item" data-order="' + o.orderId + '">';
+        pendingHtml += '<div class="admin-order-item" data-order="' + o.order_id + '">';
         pendingHtml += '<div class="ao-header">';
-        pendingHtml += '<div><div class="ao-book">📕 ' + escHtml(o.bookTitle) + '</div>';
+        pendingHtml += '<div><div class="ao-book">📕 ' + escHtml(o.book_title) + '</div>';
         pendingHtml += '<div class="ao-user">👤 购买者：' + escHtml(o.username) + '</div></div>';
         pendingHtml += '<div style="font-weight:bold;color:#E74C3C">¥' + o.price + '</div></div>';
-        pendingHtml += '<div class="ao-meta">📦 订单号：' + o.orderId + '</div>';
+        pendingHtml += '<div class="ao-meta">📦 订单号：' + o.order_id + '</div>';
         pendingHtml += '<div class="ao-meta">🕐 ' + (o.createdAt ? new Date(o.createdAt).toLocaleString('zh-CN') : '') + '</div>';
         pendingHtml += '<div class="ao-actions">';
-        pendingHtml += '<button class="btn-reject" data-action="reject" data-order="' + o.orderId + '">拒绝</button>';
-        pendingHtml += '<button class="btn-approve" data-action="approve" data-order="' + o.orderId + '">✓ 确认收款</button>';
+        pendingHtml += '<button class="btn-reject" data-action="reject" data-order="' + o.order_id + '">拒绝</button>';
+        pendingHtml += '<button class="btn-approve" data-action="approve" data-order="' + o.order_id + '">✓ 确认收款</button>';
         pendingHtml += '</div></div>';
       });
     }
@@ -740,13 +743,13 @@
       processedHtml += '<div class="order-list-item" style="flex-direction:column;align-items:stretch;">';
       processedHtml += '<div style="display:flex;justify-content:space-between;align-items:center;">';
       processedHtml += '<div class="ol-info">';
-      processedHtml += '<div class="ol-book">📕 ' + escHtml(o.bookTitle) + '</div>';
+      processedHtml += '<div class="ol-book">📕 ' + escHtml(o.book_title) + '</div>';
       processedHtml += '<div class="ol-meta">👤 ' + escHtml(o.username) + ' · ¥' + o.price + '</div>';
       processedHtml += '</div>';
       processedHtml += '<div class="ol-status ' + stClass + '">' + stText + '</div>';
       processedHtml += '</div>';
       processedHtml += '<div style="font-size:11px;color:#bbb;margin-top:6px;padding-top:6px;border-top:1px solid #f5f5f5;">';
-      processedHtml += '📦 订单号：<span style="color:#666;word-break:break-all;">' + escHtml(o.orderId) + '</span>';
+      processedHtml += '📦 订单号：<span style="color:#666;word-break:break-all;">' + escHtml(o.order_id) + '</span>';
       if (vTime) processedHtml += ' · 🕐 ' + vTime;
       if (o.verifiedBy) processedHtml += ' · 审核人：' + escHtml(o.verifiedBy);
       if (o.status === 'rejected' && o.rejectReason) processedHtml += ' · 原因：' + escHtml(o.rejectReason);
@@ -759,10 +762,10 @@
       btn.onclick = function() {
         var orderId = this.dataset.order;
         var orders = Store.getAllOrders();
-        var order = orders.find(function(o) { return o.orderId === orderId; });
+        var order = orders.find(function(o) { return o.order_id === orderId; });
         if (!order) { alert('错误：找不到该订单'); return; }
         if (order.status !== 'pending_verification') { alert('该订单已处理'); renderAdminPanel(); return; }
-        if (!confirm('确认已收到 ' + escHtml(order.username) + ' 的 ¥' + order.price + ' 付款？\n《' + escHtml(order.bookTitle) + '》将加入用户书架。')) return;
+        if (!confirm('确认已收到 ' + escHtml(order.username) + ' 的 ¥' + order.price + ' 付款？\n《' + escHtml(order.book_title) + '》将加入用户书架。')) return;
         var result = Store.approveOrder(orderId);
         alert(result.msg);
         renderAdminPanel();
@@ -773,7 +776,7 @@
       btn.onclick = function() {
         var orderId = this.dataset.order;
         var orders = Store.getAllOrders();
-        var order = orders.find(function(o) { return o.orderId === orderId; });
+        var order = orders.find(function(o) { return o.order_id === orderId; });
         if (!order) { alert('错误：找不到该订单'); return; }
         var reason = prompt('拒绝原因（可选）：', '未收到付款记录');
         if (reason === null) return; // 用户点了取消
@@ -787,7 +790,7 @@
     document.getElementById('btn-cloud-refresh').onclick = function() {
       var btn = document.getElementById('btn-cloud-refresh');
       btn.textContent = '⏳';
-      Sync.forceRefresh(function(ok) {
+      Store.cloudRefresh(function(ok) {
         btn.textContent = ok ? '☁️ 已同步' : '☁️ 离线';
         renderAdminPanel();
         updateBookshelfBadge();
