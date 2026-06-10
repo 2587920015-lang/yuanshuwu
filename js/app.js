@@ -267,8 +267,7 @@
     var purchased = Store.hasPurchased(bookId);
 
     loadChaptersForBook(currentBook, function() {
-      var chapters = window.__CHAPTERS_DATA__ || [];
-      currentChapters = chapters;
+      var chapters = currentChapters || [];
 
       var coverHtml = book.cover
         ? '<img src="' + book.cover + '" style="width:100%;height:100%;object-fit:cover" alt="封面">'
@@ -522,7 +521,6 @@
       }
     }
     loadChaptersForBook(currentBook, function() {
-      currentChapters = window.__CHAPTERS_DATA__ || [];
       openReader(startIdx);
     });
   }
@@ -556,7 +554,7 @@
   }
 
   function loadChapterContent(index) {
-    var chapters = window.__CHAPTERS_DATA__ || [];
+    var chapters = currentChapters || [];
     if (index < 0 || index >= chapters.length) return;
     var ch = chapters[index];
     document.getElementById('reader-loading').style.display = 'flex';
@@ -584,7 +582,7 @@
       if (currentChapterIndex > 0) { currentChapterIndex--; loadChapterContent(currentChapterIndex); }
     };
     document.getElementById('btn-next').onclick = function() {
-      var chs = window.__CHAPTERS_DATA__ || [];
+      var chs = currentChapters || [];
       if (currentChapterIndex < chs.length - 1) { currentChapterIndex++; loadChapterContent(currentChapterIndex); }
     };
     document.getElementById('btn-font-minus').onclick = function() {
@@ -619,7 +617,7 @@
   }
 
   function renderCatalog() {
-    var chapters = window.__CHAPTERS_DATA__ || [];
+    var chapters = currentChapters || [];
     var html = '';
     chapters.forEach(function(ch) {
       var cls = (ch.index === currentChapterIndex) ? ' catalog-item current' : 'catalog-item';
