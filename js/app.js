@@ -643,9 +643,8 @@
     });
   }
 
-  // ========== 上传新书（拖拽/选择TXT自动解析上架） ==========
+  // ========== 上传新书（拖拽/选择TXT自动解析直接上架） ==========
   var _uploadBound = false;
-  var _parsedData = null;
 
   function bindUploadBook() {
     if (_uploadBound) return;
@@ -655,66 +654,91 @@
     var fileInput = document.getElementById('upload-file');
     if (!uploadArea || !fileInput) return;
 
-    // 文件选择（透明覆盖层直接点击）
+    // 文件选择 → 自动解析并上架（全程自动，无需确认）
     fileInput.addEventListener('change', function() {
-      if (this.files[0]) parseFile(this.files[0]);
-      this.value = ''; // 允许重复选择同一文件
+      if (this.files[0]) {
+        parseAndUpload(this.files[0]);
+        this.value = '';
+      }
     });
-    // 拖拽（监听 uploadArea，input 覆盖层不拦截拖拽事件）
+    // 拖拽上传
     uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = '#4A90D9'; });
     uploadArea.addEventListener('dragleave', function() { this.style.borderColor = '#ddd'; });
     uploadArea.addEventListener('drop', function(e) {
       e.preventDefault(); this.style.borderColor = '#ddd';
-      if (e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files[0]) parseAndUpload(e.dataTransfer.files[0]);
     });
-    // 防止拖拽文件时 input 拦截
     fileInput.addEventListener('dragover', function(e) { e.stopPropagation(); });
     fileInput.addEventListener('drop', function(e) { e.stopPropagation(); });
-
-    document.getElementById('btn-upload').addEventListener('click', function() {
-      if (!_parsedData) return;
-      saveBook(_parsedData);
-    });
-
-    document.getElementById('btn-cancel-upload').addEventListener('click', function() {
-      document.getElementById('upload-preview').style.display = 'none';
-      document.getElementById('upload-file-name').textContent = '';
-      document.getElementById('upload-file').value = '';
-      _parsedData = null;
-    });
   }
 
-  // 选择文件 → 自动解析
-  function parseFile(file) {
+  // 上传 → 自动解析 → 直接上架
+  function parseAndUpload(file) {
     if (!file.name.toLowerCase().endsWith('.txt')) {
       document.getElementById('upload-error').textContent = '仅支持 .txt 文件'; return;
     }
-    document.getElementById('upload-file-name').textContent = '⏳ 解析中...';
+    document.getElementById('upload-file-name').textContent = '⏳ 正在解析...';
     document.getElementById('upload-error').textContent = '';
     document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('upload-progress').style.display = 'block';
+    document.getElementById('upload-bar').style.width = '10%';
+    document.getElementById('upload-status').textContent = '读取文件中...';
 
     var reader = new FileReader();
     reader.onload = function(e) {
+      document.getElementById('upload-bar').style.width = '40%';
+      document.getElementById('upload-status').textContent = '检测编码...';
       var text = tryDecode(e.target.result);
       if (!text || (text.indexOf('第') === -1 && text.indexOf('章') === -1)) {
-        document.getElementById('upload-error').textContent = '无法识别编码或未找到章节标记，请确认文件格式';
+        document.getElementById('upload-error').textContent = '无法识别，请确认包含"第X章"标记';
+        document.getElementById('upload-progress').style.display = 'none';
         document.getElementById('upload-file-name').textContent = '';
         return;
       }
+      document.getElementById('upload-bar').style.width = '60%';
+      document.getElementById('upload-status').textContent = '正在提取章节...';
       var result = extractBookInfo(text, file.name);
-      if (!result) {
-        document.getElementById('upload-error').textContent = '未找到章节，请确认文件包含"第X章"标记';
+      if (!result || result.chapters.length === 0) {
+        document.getElementById('upload-error').textContent = '未找到章节';
+        document.getElementById('upload-progress').style.display = 'none';
         document.getElementById('upload-file-name').textContent = '';
         return;
       }
-      _parsedData = result;
-      showPreview(result);
-      document.getElementById('upload-file-name').textContent = '✅ ' + file.name;
+      document.getElementById('upload-bar').style.width = '90%';
+      document.getElementById('upload-status').textContent = '上架中...';
+      saveBookDirect(result);
     };
     reader.onerror = function() {
       document.getElementById('upload-error').textContent = '文件读取失败';
+      document.getElementById('upload-progress').style.display = 'none';
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  // 直接保存上架（无预览无确认）
+  function saveBookDirect(data) {
+    var bookId = 'custom_' + Date.now();
+    var book = {
+      id: bookId, _id: bookId,
+      title: data.title, author: data.author, cover: '',
+      description: data.description, category: data.category,
+      price: 0.99, chapterCount: data.chapters.length,
+      totalWords: data.totalWords, salesCount: 0, source: 'custom'
+    };
+    Store.saveCustomBook(book);
+    Store.saveCustomChapters(bookId, data.chapters);
+
+    document.getElementById('upload-bar').style.width = '100%';
+    document.getElementById('upload-status').textContent = '';
+    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('upload-file-name').textContent = '';
+    document.getElementById('upload-error').textContent = '';
+
+    var resultDiv = document.getElementById('upload-result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '✅ <b>' + data.title + '</b> 已自动上架！共 <b>' + data.chapters.length + '</b> 章 · ' + formatNum(data.totalWords) + '字';
+    updateCustomCategoryTags();
+    setTimeout(function() { resultDiv.style.display = 'none'; }, 4000);
   }
 
   // 自动提取书名、作者、简介、分类
@@ -786,40 +810,6 @@
       } catch(e) {}
     }
     return new TextDecoder('utf-8').decode(arr);
-  }
-
-  function showPreview(data) {
-    document.getElementById('up-title').textContent = data.title;
-    document.getElementById('up-author').textContent = data.author;
-    document.getElementById('up-category').textContent = data.category + '（自动识别）';
-    document.getElementById('up-chapters').textContent = data.chapters.length + '章';
-    document.getElementById('up-words').textContent = formatNum(data.totalWords) + '字';
-    document.getElementById('up-desc').textContent = data.description || '（未提取到简介）';
-    document.getElementById('upload-preview').style.display = 'block';
-  }
-
-  function saveBook(data) {
-    var bookId = 'custom_' + Date.now();
-    var book = {
-      id: bookId, _id: bookId,
-      title: data.title, author: data.author, cover: '',
-      description: data.description, category: data.category,
-      price: 0.99, chapterCount: data.chapters.length,
-      totalWords: data.totalWords, salesCount: 0, source: 'custom'
-    };
-    Store.saveCustomBook(book);
-    Store.saveCustomChapters(bookId, data.chapters);
-
-    document.getElementById('upload-preview').style.display = 'none';
-    document.getElementById('upload-file-name').textContent = '';
-    document.getElementById('upload-file').value = '';
-    _parsedData = null;
-
-    var resultDiv = document.getElementById('upload-result');
-    resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '✅ <b>' + data.title + '</b> 已上架！<br>共 <b>' + data.chapters.length + '</b> 章 · ' + formatNum(data.totalWords) + '字 · ¥0.99';
-    updateCustomCategoryTags();
-    setTimeout(function() { resultDiv.style.display = 'none'; }, 5000);
   }
 
   // 动态更新分类标签
@@ -980,13 +970,17 @@
       input.click();
     };
 
-    // 返回按钮
-    document.getElementById('admin-back').onclick = function() {
-      document.getElementById('nav-tabs').style.display = '';
-      document.getElementById('nav-title').innerHTML = '<img src=\"images/logo.png\" style=\"width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:6px;\">小元书屋';
-      document.getElementById('btn-admin').style.display = Store.isAdmin() ? 'inline' : 'none';
-      switchTab('bookstore');
-    };
+    // 返回按钮（只绑定一次）
+    if (!document.getElementById('admin-back')._bound) {
+      document.getElementById('admin-back')._bound = true;
+      document.getElementById('admin-back').onclick = function() {
+        document.getElementById('view-admin').classList.remove('active');
+        document.getElementById('nav-tabs').style.display = '';
+        document.getElementById('nav-title').innerHTML = '<img src=\"images/logo.png\" style=\"width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:6px;\">小元书屋';
+        document.getElementById('btn-admin').style.display = Store.isAdmin() ? 'inline' : 'none';
+        switchTab('bookstore');
+      };
+    }
   }
 
   // ========== 章节加载（内置+自定义） ==========
