@@ -1,5 +1,5 @@
 /* =============================================
-   元书屋 Web App - 移动端优先样式
+   小元书屋 Web App - 移动端优先样式
    ============================================= */
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -333,7 +333,36 @@ body {
 
 #admin-empty { display:none; }
 
-/* ===== 响应式 ===== */
-@media (min-width:600px) {
-  .shelf-grid { grid-template-columns:repeat(4,1fr); }
+/* ===== 上传新书 ===== */
+.upload-area {
+  border:2px dashed #ddd; border-radius:12px; padding:30px; text-align:center;
+  cursor:pointer; transition:border .2s; background:#fafafa;
+}
+.upload-area:hover { border-color:#4A90D9; background:#f0f6ff; }
+.upload-hint { font-size:14px; color:#999; }
+.upload-tip { font-size:12px; color:#bbb; margin-top:6px; }
+#upload-section .form-group { margin-bottom:14px; }
+#upload-section .form-group label { display:block; font-size:14px; color:#666; margin-bottom:6px; font-weight:bold; }
+#upload-section .form-group input[type="text"],
+#upload-section .form-group input[type="number"],
+#upload-section .form-group select {
+  width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px;
+}
+
+/* ===== 响应式：桌面端适配 ===== */
+@media (min-width:768px) {
+  body {
+    box-shadow:0 0 30px rgba(0,0,0,.1);
+    border-left:1px solid #e0e0e0;
+    border-right:1px solid #e0e0e0;
+  }
+  .book-cover { width:100px; height:135px; }
+  .detail-cover { width:140px; height:190px; }
+  .detail-title { font-size:24px; }
+  .shelf-grid { grid-template-columns:repeat(4,1fr); gap:16px; }
+  .auth-container { padding:100px 40px; }
+  .reader-content { padding:30px 40px; }
+}
+@media (min-width:1024px) {
+  .shelf-grid { grid-template-columns:repeat(5,1fr); gap:20px; }
 }

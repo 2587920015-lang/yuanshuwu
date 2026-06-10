@@ -119,17 +119,31 @@ var Store = {
     return { ok: true, msg: '注册成功，请登录' };
   },
 
-  login: function(username, password) {
+  login: function(username, password, rememberMe) {
     if (!username || !password) return { ok: false, msg: '请输入用户名和密码' };
     var users = this._getUsers();
     var hashed = this._hash(password);
     var user = users.find(function(u) { return u.username === username && u.password === hashed; });
     if (!user) return { ok: false, msg: '用户名或密码错误' };
     this._setCurrentUser(user);
+    // 记住登录：勾选后下次打开无需重新登录
+    if (rememberMe !== false) {
+      localStorage.setItem('bs_remember', '1');
+    } else {
+      localStorage.removeItem('bs_remember');
+    }
     return { ok: true, user: { username: user.username, isAdmin: user.isAdmin } };
   },
 
-  logout: function() { localStorage.removeItem('currentUser'); },
+  // 检查是否需要自动登录
+  shouldAutoLogin: function() {
+    return localStorage.getItem('bs_remember') === '1' && this.getCurrentUser();
+  },
+
+  logout: function() {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('bs_remember');
+  },
   getCurrentUser: function() {
     try { return JSON.parse(localStorage.getItem('currentUser') || 'null'); } catch(e) { return null; }
   },
@@ -248,6 +262,42 @@ var Store = {
   _saveUserProgress: function(n,d) { localStorage.setItem('bs_progress_'+n, JSON.stringify(d)); },
   _getOrders: function() { try { return JSON.parse(localStorage.getItem('bs_orders')||'[]'); } catch(e){ return []; } },
   _saveOrders: function(o) { localStorage.setItem('bs_orders', JSON.stringify(o)); },
+
+  // ========== 自定义书籍管理 ==========
+  getCustomBooks: function() {
+    try { return JSON.parse(localStorage.getItem('bs_custom_books')||'[]'); } catch(e){ return []; }
+  },
+  saveCustomBook: function(book) {
+    var books = this.getCustomBooks();
+    books.push(book);
+    localStorage.setItem('bs_custom_books', JSON.stringify(books));
+  },
+  deleteCustomBook: function(bookId) {
+    var books = this.getCustomBooks().filter(function(b) { return b.id !== bookId; });
+    localStorage.setItem('bs_custom_books', JSON.stringify(books));
+    localStorage.removeItem('bs_custom_chapters_' + bookId);
+  },
+  getCustomChapters: function(bookId) {
+    try { return JSON.parse(localStorage.getItem('bs_custom_chapters_'+bookId)||'[]'); } catch(e){ return []; }
+  },
+  saveCustomChapters: function(bookId, chapters) {
+    localStorage.setItem('bs_custom_chapters_'+bookId, JSON.stringify(chapters));
+  },
+  // 获取所有书籍（内置+自定义）
+  getAllBooks: function() {
+    var books = [];
+    if (window.__BOOK_DATA__) {
+      var b = window.__BOOK_DATA__;
+      b.source = 'builtin';
+      books.push(b);
+    }
+    this.getCustomBooks().forEach(function(b) {
+      b.source = 'custom';
+      books.push(b);
+    });
+    return books;
+  },
+
   _ensureDefaultAdmin: function() {
     var u = this._getUsers();
     if (u.length === 0) {

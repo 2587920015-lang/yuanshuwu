@@ -1,4 +1,4 @@
-# 元书屋 - Web 版
+# 小元书屋 - Web 版
 
 小说书店网页应用，无需服务器、无需注册第三方服务，浏览器打开即用。
 
@@ -63,7 +63,7 @@ bookstore-web/
 | 收款码 | `images/payment-qrcode.jpg` | 替换图片 |
 | 管理员 | 默认 `yuan` / `xiaoyuan123` | 登录后在代码中修改 |
 | 书籍价格 | `data/chapters/book-data.js` | 修改 `price` 字段 |
-| 书店名称 | `index.html` | 搜索替换「元书屋」 |
+| 书店名称 | `index.html` | 搜索替换「小元书屋」 |
 
 ## 默认账号
 

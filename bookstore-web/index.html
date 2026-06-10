@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>元书屋 - 二哈和他的白猫师尊</title>
+<title>小元书屋 - 二哈和他的白猫师尊</title>
 <link rel="icon" type="image/png" href="images/logo.png">
 <link rel="stylesheet" href="css/style.css">
 <!-- 纯本地存储，跨设备通过导入导出JSON同步 -->
@@ -13,8 +13,8 @@
 <!-- ==================== 登录/注册页面 ==================== -->
 <div id="view-auth" class="view active">
   <div class="auth-container">
-    <div class="auth-logo"><img src="images/logo.png" alt="元书屋" style="width:80px;height:80px;border-radius:16px;"></div>
-    <h2 class="auth-app-name">元书屋</h2>
+    <div class="auth-logo"><img src="images/logo.png" alt="小元书屋" style="width:80px;height:80px;border-radius:16px;"></div>
+    <h2 class="auth-app-name">小元书屋</h2>
     <p class="auth-subtitle">耽美的快乐老家，你想看的这里都有！</p>
 
     <!-- 登录表单 -->
@@ -26,6 +26,10 @@
       <div class="form-group">
         <label>密码</label>
         <input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="remember-me" checked style="width:auto;">
+        <label for="remember-me" style="font-size:13px;color:#999;margin:0;">记住登录（下次打开无需重新登录）</label>
       </div>
       <div class="form-error" id="login-error"></div>
       <button class="btn-auth" id="btn-login">登 录</button>
@@ -59,7 +63,7 @@
 
 <!-- ==================== 顶部导航栏 ==================== -->
 <nav id="top-nav" style="display:none">
-  <div class="nav-title" id="nav-title"><img src="images/logo.png" style="width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:6px;">元书屋</div>
+  <div class="nav-title" id="nav-title"><img src="images/logo.png" style="width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:6px;">小元书屋</div>
   <div class="nav-tabs" id="nav-tabs">
     <span class="nav-tab active" data-tab="bookstore">书店</span>
     <span class="nav-tab" data-tab="bookshelf">书架<span id="badge-bookshelf" class="badge" style="display:none">0</span></span>
@@ -174,6 +178,51 @@
 
   <div class="section-title">📋 最近已处理</div>
   <div id="admin-processed-list"></div>
+
+  <!-- 上传新书 -->
+  <div class="section-title">📤 上传新书</div>
+  <div class="settings-card" id="upload-section">
+    <div class="form-group">
+      <label>书名 <span style="color:#E74C3C">*</span></label>
+      <input type="text" id="upload-title" placeholder="输入书名">
+    </div>
+    <div class="form-group">
+      <label>作者 <span style="color:#E74C3C">*</span></label>
+      <input type="text" id="upload-author" placeholder="输入作者">
+    </div>
+    <div class="form-group">
+      <label>简介</label>
+      <textarea id="upload-desc" placeholder="输入书籍简介" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
+    </div>
+    <div class="form-group">
+      <label>分类</label>
+      <select id="upload-category" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+        <option>仙侠</option><option>言情</option><option>玄幻</option><option>悬疑</option><option>科幻</option><option>武侠</option><option>历史</option><option>都市</option><option>其他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>价格（元）</label>
+      <input type="number" id="upload-price" value="0.99" step="0.01" min="0">
+    </div>
+    <div class="form-group">
+      <label>上传 TXT 文件 <span style="color:#E74C3C">*</span></label>
+      <div class="upload-area" id="upload-area">
+        <div class="upload-hint">📁 点击选择或拖拽 .txt 文件到此处</div>
+        <input type="file" id="upload-file" accept=".txt" style="display:none;">
+        <div id="upload-file-name" style="font-size:13px;color:#4A90D9;margin-top:8px;"></div>
+      </div>
+      <div class="upload-tip">文件格式需包含"第X章"标记来划分章节</div>
+    </div>
+    <div id="upload-progress" style="display:none;margin:10px 0;">
+      <div style="background:#eee;border-radius:10px;height:8px;">
+        <div id="upload-bar" style="background:#4A90D9;height:8px;border-radius:10px;width:0%;transition:width .3s;"></div>
+      </div>
+      <div id="upload-status" style="font-size:13px;color:#999;text-align:center;margin-top:6px;"></div>
+    </div>
+    <div id="upload-error" class="form-error"></div>
+    <button class="btn-approve" id="btn-upload" style="width:100%;">📤 解析并上架</button>
+    <div id="upload-result" style="display:none;margin-top:12px;padding:12px;background:#E8F5E9;border-radius:8px;font-size:14px;color:#2E7D32;"></div>
+  </div>
 </div>
 
 <!-- ==================== 支付弹窗 ==================== -->
