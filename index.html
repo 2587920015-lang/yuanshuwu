@@ -182,36 +182,25 @@
   <!-- 上传新书 -->
   <div class="section-title">📤 上传新书</div>
   <div class="settings-card" id="upload-section">
-    <div class="form-group">
-      <label>书名 <span style="color:#E74C3C">*</span></label>
-      <input type="text" id="upload-title" placeholder="输入书名">
+    <div class="upload-area" id="upload-area">
+      <div class="upload-hint">📁 点击或拖拽 .txt 文件到此处</div>
+      <div class="upload-sub">自动识别书名、作者、分类，无需手动填写</div>
+      <input type="file" id="upload-file" accept=".txt" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;">
+      <div id="upload-file-name" style="font-size:13px;color:#4A90D9;margin-top:8px;"></div>
     </div>
-    <div class="form-group">
-      <label>作者 <span style="color:#E74C3C">*</span></label>
-      <input type="text" id="upload-author" placeholder="输入作者">
-    </div>
-    <div class="form-group">
-      <label>简介</label>
-      <textarea id="upload-desc" placeholder="输入书籍简介" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
-    </div>
-    <div class="form-group">
-      <label>分类</label>
-      <select id="upload-category" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
-        <option>仙侠</option><option>言情</option><option>玄幻</option><option>悬疑</option><option>科幻</option><option>武侠</option><option>历史</option><option>都市</option><option>其他</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>价格（元）</label>
-      <input type="number" id="upload-price" value="0.99" step="0.01" min="0">
-    </div>
-    <div class="form-group">
-      <label>上传 TXT 文件 <span style="color:#E74C3C">*</span></label>
-      <div class="upload-area" id="upload-area">
-        <div class="upload-hint">📁 点击选择或拖拽 .txt 文件到此处</div>
-        <input type="file" id="upload-file" accept=".txt" style="display:none;">
-        <div id="upload-file-name" style="font-size:13px;color:#4A90D9;margin-top:8px;"></div>
+    <div id="upload-preview" style="display:none;margin-top:12px;">
+      <div class="upload-preview-card">
+        <div class="up-row"><span class="up-label">书名</span><span class="up-value" id="up-title"></span></div>
+        <div class="up-row"><span class="up-label">作者</span><span class="up-value" id="up-author"></span></div>
+        <div class="up-row"><span class="up-label">分类</span><span class="up-value" id="up-category"></span></div>
+        <div class="up-row"><span class="up-label">章节</span><span class="up-value" id="up-chapters"></span></div>
+        <div class="up-row"><span class="up-label">字数</span><span class="up-value" id="up-words"></span></div>
+        <div class="up-row"><span class="up-label">简介</span><span class="up-value" id="up-desc" style="font-size:12px;color:#666;line-height:1.6;"></span></div>
+        <div class="up-actions">
+          <button class="btn-reject" id="btn-cancel-upload">取消</button>
+          <button class="btn-approve" id="btn-upload" style="flex:1;">✅ 确认上架 · ¥0.99</button>
+        </div>
       </div>
-      <div class="upload-tip">文件格式需包含"第X章"标记来划分章节</div>
     </div>
     <div id="upload-progress" style="display:none;margin:10px 0;">
       <div style="background:#eee;border-radius:10px;height:8px;">
@@ -220,7 +209,6 @@
       <div id="upload-status" style="font-size:13px;color:#999;text-align:center;margin-top:6px;"></div>
     </div>
     <div id="upload-error" class="form-error"></div>
-    <button class="btn-approve" id="btn-upload" style="width:100%;">📤 解析并上架</button>
     <div id="upload-result" style="display:none;margin-top:12px;padding:12px;background:#E8F5E9;border-radius:8px;font-size:14px;color:#2E7D32;"></div>
   </div>
 </div>

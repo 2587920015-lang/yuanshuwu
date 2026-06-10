@@ -643,161 +643,176 @@
     });
   }
 
-  // ========== 上传新书 ==========
+  // ========== 上传新书（拖拽/选择TXT自动解析上架） ==========
+  var _uploadBound = false;
+  var _parsedData = null;
+
   function bindUploadBook() {
+    if (_uploadBound) return;
+    _uploadBound = true;
+
     var uploadArea = document.getElementById('upload-area');
     var fileInput = document.getElementById('upload-file');
+    if (!uploadArea || !fileInput) return;
 
     uploadArea.addEventListener('click', function() { fileInput.click(); });
     uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = '#4A90D9'; });
     uploadArea.addEventListener('dragleave', function() { this.style.borderColor = '#ddd'; });
     uploadArea.addEventListener('drop', function(e) {
       e.preventDefault(); this.style.borderColor = '#ddd';
-      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]);
     });
     fileInput.addEventListener('change', function() {
-      if (this.files[0]) handleFile(this.files[0]);
+      if (this.files[0]) parseFile(this.files[0]);
     });
 
     document.getElementById('btn-upload').addEventListener('click', function() {
-      var file = fileInput.files[0];
-      if (!file) { document.getElementById('upload-error').textContent = '请选择TXT文件'; return; }
-      processUpload(file);
+      if (!_parsedData) return;
+      saveBook(_parsedData);
+    });
+
+    document.getElementById('btn-cancel-upload').addEventListener('click', function() {
+      document.getElementById('upload-preview').style.display = 'none';
+      document.getElementById('upload-file-name').textContent = '';
+      document.getElementById('upload-file').value = '';
+      _parsedData = null;
     });
   }
 
-  var _selectedFile = null;
-  function handleFile(file) {
-    if (!file.name.endsWith('.txt')) {
+  // 选择文件 → 自动解析
+  function parseFile(file) {
+    if (!file.name.toLowerCase().endsWith('.txt')) {
       document.getElementById('upload-error').textContent = '仅支持 .txt 文件'; return;
     }
-    _selectedFile = file;
-    document.getElementById('upload-file-name').textContent = '✅ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+    document.getElementById('upload-file-name').textContent = '⏳ 解析中...';
     document.getElementById('upload-error').textContent = '';
-  }
-
-  function processUpload(file) {
-    var title = document.getElementById('upload-title').value.trim();
-    var author = document.getElementById('upload-author').value.trim();
-    if (!title || !author) {
-      document.getElementById('upload-error').textContent = '请填写书名和作者'; return;
-    }
-
-    document.getElementById('upload-progress').style.display = 'block';
-    document.getElementById('upload-bar').style.width = '10%';
-    document.getElementById('upload-status').textContent = '正在读取文件...';
+    document.getElementById('upload-preview').style.display = 'none';
 
     var reader = new FileReader();
     reader.onload = function(e) {
-      document.getElementById('upload-bar').style.width = '30%';
-      document.getElementById('upload-status').textContent = '正在解析章节...';
-      setTimeout(function() { parseAndSave(e.target.result, file); }, 50);
+      var text = tryDecode(e.target.result);
+      if (!text || (text.indexOf('第') === -1 && text.indexOf('章') === -1)) {
+        document.getElementById('upload-error').textContent = '无法识别编码或未找到章节标记，请确认文件格式';
+        document.getElementById('upload-file-name').textContent = '';
+        return;
+      }
+      var result = extractBookInfo(text, file.name);
+      if (!result) {
+        document.getElementById('upload-error').textContent = '未找到章节，请确认文件包含"第X章"标记';
+        document.getElementById('upload-file-name').textContent = '';
+        return;
+      }
+      _parsedData = result;
+      showPreview(result);
+      document.getElementById('upload-file-name').textContent = '✅ ' + file.name;
     };
     reader.onerror = function() {
       document.getElementById('upload-error').textContent = '文件读取失败';
     };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   }
 
-  function parseAndSave(text, file) {
-    // 如果UTF-8解析出来乱码，尝试GBK
-    if (text.indexOf('第') === -1 && text.indexOf('章') === -1) {
-      document.getElementById('upload-error').textContent = '未检测到章节标记"第X章"，请确认文件格式';
-      document.getElementById('upload-progress').style.display = 'none';
-      return;
-    }
+  // 自动提取书名、作者、简介、分类
+  function extractBookInfo(text, filename) {
+    var metaEnd = text.search(/第[一二三四五六七八九十百千\d]+章/);
+    var metaText = metaEnd > 0 ? text.substring(0, metaEnd).trim() : text.substring(0, 500);
 
-    // 解析章节
+    // 书名：《xxx》
+    var titleMatch = metaText.match(/《([^》]+)》/);
+    var title = titleMatch ? titleMatch[1].trim() : filename.replace(/\.txt$/i, '');
+
+    // 作者：作者：xxx
+    var authorMatch = metaText.match(/(?:作者|[著作]者)[：:\s]*([^\n\r]{1,20})/);
+    var author = authorMatch ? authorMatch[1].trim().replace(/[《》]/g, '') : '佚名';
+
+    // 简介
+    var descStart = metaText.indexOf('\n');
+    var rawDesc = descStart > 0 ? metaText.substring(descStart).trim() : metaText;
+    rawDesc = rawDesc.replace(/Ps[.．].*/gi, '').replace(/内容标签[：:][^\n]*/g, '');
+    rawDesc = rawDesc.replace(/搜索关键字[：:][^\n]*/g, '').replace(/作品简评[：:][^\n]*/g, '');
+    var description = rawDesc.replace(/\n{3,}/g, '\n').substring(0, 300).trim();
+
+    // 分类
+    var category = detectCategory(metaText + text.substring(0, 5000));
+
+    // 分割章节
     var chapters = [];
     var chapterRegex = /第[一二三四五六七八九十百千\d]+章[^\n]*/g;
-    var matches = [];
-    var match;
+    var matches = [], match;
     while ((match = chapterRegex.exec(text)) !== null) {
       matches.push({ index: match.index, title: match[0].trim() });
     }
+    if (matches.length === 0) return null;
 
-    if (matches.length === 0) {
-      document.getElementById('upload-error').textContent = '未找到章节，请确认文件包含"第X章"标记';
-      document.getElementById('upload-progress').style.display = 'none';
-      return;
-    }
-
-    document.getElementById('upload-bar').style.width = '50%';
-    document.getElementById('upload-status').textContent = '找到 ' + matches.length + ' 章，正在分割...';
-
-    // 提取元数据（第一章之前的内容）
-    var metaText = text.substring(0, matches[0].index).trim();
-    var description = metaText.replace(/\n{3,}/g, '\n\n').substring(0, 500).trim();
-
-    // 如果管理员手动填了简介，用填的
-    var manualDesc = document.getElementById('upload-desc').value.trim();
-    if (manualDesc) description = manualDesc;
-
-    // 分割章节
     var totalWords = 0;
     for (var i = 0; i < matches.length; i++) {
-      var startIdx = matches[i].index;
-      var endIdx = (i + 1 < matches.length) ? matches[i+1].index : text.length;
-      var chapterText = text.substring(startIdx, endIdx).trim();
-      var lines = chapterText.split('\n');
-      var chapTitle = matches[i].title;
-      // 内容：去掉第一行的章节标题
-      var bodyLines = lines.slice(1);
-      var body = bodyLines.join('\n').trim();
-      // 清理空行
-      body = body.replace(/\n{3,}/g, '\n\n');
-      var wordCount = body.replace(/\s/g, '').length;
-
-      chapters.push({
-        index: i,
-        title: chapTitle,
-        content: body,
-        wordCount: wordCount
-      });
-      totalWords += wordCount;
+      var si = matches[i].index;
+      var ei = (i + 1 < matches.length) ? matches[i+1].index : text.length;
+      var chText = text.substring(si, ei).trim();
+      var lines = chText.split('\n');
+      var body = lines.slice(1).join('\n').trim().replace(/\n{3,}/g, '\n\n');
+      var wc = body.replace(/\s/g, '').length;
+      chapters.push({ index: i, title: matches[i].title, content: body, wordCount: wc });
+      totalWords += wc;
     }
 
-    document.getElementById('upload-bar').style.width = '80%';
-    document.getElementById('upload-status').textContent = '正在保存...';
+    return { title: title, author: author, description: description, category: category, chapters: chapters, totalWords: totalWords };
+  }
 
-    // 保存
+  function detectCategory(text) {
+    if (/修真|仙侠|修仙|飞升|渡劫|灵力|灵根|元婴|筑基/.test(text)) return '仙侠';
+    if (/言情|恋爱|总裁|霸道|甜宠|婚恋|初恋|耽美|纯爱/.test(text)) return '言情';
+    if (/玄幻|异界|斗气|武魂|魔法|精灵|龙族/.test(text)) return '玄幻';
+    if (/悬疑|推理|侦探|案件|凶手|密室/.test(text)) return '悬疑';
+    if (/科幻|外星|宇宙|星际|机甲|末世/.test(text)) return '科幻';
+    if (/武侠|江湖|门派|剑客|刀法|内功/.test(text)) return '武侠';
+    if (/历史|穿越|古代|王爷|太子|宫廷|皇/.test(text)) return '历史';
+    if (/都市|校园|职场|总裁|豪门|现代/.test(text)) return '都市';
+    return '其他';
+  }
+
+  function tryDecode(buffer) {
+    var arr = new Uint8Array(buffer);
+    var decoders = ['utf-8', 'gbk', 'gb2312', 'utf-16le'];
+    for (var i = 0; i < decoders.length; i++) {
+      try {
+        var text = new TextDecoder(decoders[i], i === 0 ? { fatal: true } : {}).decode(arr);
+        if (text.indexOf('第') >= 0 && text.indexOf('章') >= 0) return text;
+      } catch(e) {}
+    }
+    return new TextDecoder('utf-8').decode(arr);
+  }
+
+  function showPreview(data) {
+    document.getElementById('up-title').textContent = data.title;
+    document.getElementById('up-author').textContent = data.author;
+    document.getElementById('up-category').textContent = data.category + '（自动识别）';
+    document.getElementById('up-chapters').textContent = data.chapters.length + '章';
+    document.getElementById('up-words').textContent = formatNum(data.totalWords) + '字';
+    document.getElementById('up-desc').textContent = data.description || '（未提取到简介）';
+    document.getElementById('upload-preview').style.display = 'block';
+  }
+
+  function saveBook(data) {
     var bookId = 'custom_' + Date.now();
     var book = {
-      id: bookId,
-      _id: bookId,
-      title: document.getElementById('upload-title').value.trim(),
-      author: document.getElementById('upload-author').value.trim(),
-      cover: '',
-      description: description,
-      category: document.getElementById('upload-category').value,
-      price: parseFloat(document.getElementById('upload-price').value) || 0.99,
-      chapterCount: chapters.length,
-      totalWords: totalWords,
-      salesCount: 0,
-      source: 'custom'
+      id: bookId, _id: bookId,
+      title: data.title, author: data.author, cover: '',
+      description: data.description, category: data.category,
+      price: 0.99, chapterCount: data.chapters.length,
+      totalWords: data.totalWords, salesCount: 0, source: 'custom'
     };
-
     Store.saveCustomBook(book);
-    Store.saveCustomChapters(bookId, chapters);
+    Store.saveCustomChapters(bookId, data.chapters);
 
-    document.getElementById('upload-bar').style.width = '100%';
-    document.getElementById('upload-status').textContent = '✅ 完成！';
-    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('upload-file-name').textContent = '';
+    document.getElementById('upload-file').value = '';
+    _parsedData = null;
 
     var resultDiv = document.getElementById('upload-result');
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '✅ <b>' + book.title + '</b> 已上架！<br>共 <b>' + chapters.length + '</b> 章 · ' + formatNum(totalWords) + '字 · ¥' + book.price;
-
-    // 重置表单
-    document.getElementById('upload-title').value = '';
-    document.getElementById('upload-author').value = '';
-    document.getElementById('upload-desc').value = '';
-    document.getElementById('upload-file').value = '';
-    document.getElementById('upload-file-name').textContent = '';
-    _selectedFile = null;
-    document.getElementById('upload-error').textContent = '';
-
-    // 刷新书店
+    resultDiv.innerHTML = '✅ <b>' + data.title + '</b> 已上架！<br>共 <b>' + data.chapters.length + '</b> 章 · ' + formatNum(data.totalWords) + '字 · ¥0.99';
     updateCustomCategoryTags();
     setTimeout(function() { resultDiv.style.display = 'none'; }, 5000);
   }
