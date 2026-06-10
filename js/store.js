@@ -283,10 +283,12 @@ var Store = {
   saveCustomChapters: function(bookId, chapters) {
     localStorage.setItem('bs_custom_chapters_'+bookId, JSON.stringify(chapters));
   },
-  // 获取所有书籍（内置+自定义）
+  // 获取所有书籍（4本内置 + 自定义）
   getAllBooks: function() {
     var books = [];
-    if (window.__BOOK_DATA__) {
+    if (window.__ALL_BOOKS__) {
+      window.__ALL_BOOKS__.forEach(function(b) { books.push(b); });
+    } else if (window.__BOOK_DATA__) {
       var b = window.__BOOK_DATA__;
       b.source = 'builtin';
       books.push(b);
