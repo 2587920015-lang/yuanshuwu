@@ -367,10 +367,10 @@
     var orderId = window._pendingOrderId;
     if (!orderId) return;
 
-    // 追加支付时间戳到订单号（格式：YYYYMMDDHHmm）
+    // 追加支付时间戳到订单号
     var newOrderId = Store.stampOrderPaidTime(orderId);
+    window._pendingOrderId = newOrderId || orderId;
     if (newOrderId) {
-      window._pendingOrderId = newOrderId;
       document.getElementById('pay-order-id').textContent = newOrderId;
     }
 
@@ -378,7 +378,7 @@
     document.getElementById('payment-step-1').style.display = 'none';
     document.getElementById('payment-step-2').style.display = 'block';
 
-    // 开始轮询订单状态
+    // 开始轮询
     startStatusCheck(window._pendingOrderId);
   }
 
@@ -687,7 +687,12 @@
       switchTab('bookstore');
     };
 
-    renderAdminPanel();
+    try {
+      renderAdminPanel();
+    } catch(e) {
+      console.error('Admin panel error:', e);
+      alert('管理面板加载出错：' + e.message);
+    }
   }
 
   function renderAdminPanel() {
@@ -753,19 +758,25 @@
     document.querySelectorAll('[data-action="approve"]').forEach(function(btn) {
       btn.onclick = function() {
         var orderId = this.dataset.order;
-        if (confirm('确认已收到该用户 ¥0.99 的付款？\n书籍将自动加入用户书架。')) {
-          var result = Store.approveOrder(orderId);
-          alert(result.msg);
-          renderAdminPanel();
-          updateBookshelfBadge();
-          // 如果购买者在当前页面上有轮询，状态检查会触发
-        }
+        var orders = Store.getAllOrders();
+        var order = orders.find(function(o) { return o.orderId === orderId; });
+        if (!order) { alert('错误：找不到该订单'); return; }
+        if (order.status !== 'pending_verification') { alert('该订单已处理'); renderAdminPanel(); return; }
+        if (!confirm('确认已收到 ' + escHtml(order.username) + ' 的 ¥' + order.price + ' 付款？\n《' + escHtml(order.bookTitle) + '》将加入用户书架。')) return;
+        var result = Store.approveOrder(orderId);
+        alert(result.msg);
+        renderAdminPanel();
+        updateBookshelfBadge();
       };
     });
     document.querySelectorAll('[data-action="reject"]').forEach(function(btn) {
       btn.onclick = function() {
         var orderId = this.dataset.order;
+        var orders = Store.getAllOrders();
+        var order = orders.find(function(o) { return o.orderId === orderId; });
+        if (!order) { alert('错误：找不到该订单'); return; }
         var reason = prompt('拒绝原因（可选）：', '未收到付款记录');
+        if (reason === null) return; // 用户点了取消
         var result = Store.rejectOrder(orderId, reason || '未收到付款');
         alert(result.msg);
         renderAdminPanel();
