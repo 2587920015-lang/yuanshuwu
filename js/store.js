@@ -6,8 +6,12 @@
 var Store = {
   init: function(callback) {
     this._ensureDefaultAdmin();
-    if (callback) callback();
+    Sync.init(function(cloudOk) {
+      if (cloudOk) { Sync.startAutoSync(); Store._ensureDefaultAdmin(); }
+      if (callback) callback();
+    });
   },
+  _sync: function() { Sync.push(); },
 
   // ========== 导入/导出（跨设备同步） ==========
 
@@ -254,14 +258,14 @@ var Store = {
 
   // ========== 内部 ==========
   _getUsers: function() { try { return JSON.parse(localStorage.getItem('bs_users')||'[]'); } catch(e){ return []; } },
-  _saveUsers: function(u) { localStorage.setItem('bs_users', JSON.stringify(u)); },
+  _saveUsers: function(u) { localStorage.setItem('bs_users', JSON.stringify(u)); this._sync(); },
   _setCurrentUser: function(u) { localStorage.setItem('currentUser', JSON.stringify({ username:u.username, isAdmin:u.isAdmin||false })); },
   _getUserPurchases: function(n) { try { return JSON.parse(localStorage.getItem('bs_purchases_'+n)||'[]'); } catch(e){ return []; } },
-  _saveUserPurchases: function(n,d) { localStorage.setItem('bs_purchases_'+n, JSON.stringify(d)); },
+  _saveUserPurchases: function(n,d) { localStorage.setItem('bs_purchases_'+n, JSON.stringify(d)); this._sync(); },
   _getUserProgress: function(n) { try { return JSON.parse(localStorage.getItem('bs_progress_'+n)||'{}'); } catch(e){ return {}; } },
-  _saveUserProgress: function(n,d) { localStorage.setItem('bs_progress_'+n, JSON.stringify(d)); },
+  _saveUserProgress: function(n,d) { localStorage.setItem('bs_progress_'+n, JSON.stringify(d)); this._sync(); },
   _getOrders: function() { try { return JSON.parse(localStorage.getItem('bs_orders')||'[]'); } catch(e){ return []; } },
-  _saveOrders: function(o) { localStorage.setItem('bs_orders', JSON.stringify(o)); },
+  _saveOrders: function(o) { localStorage.setItem('bs_orders', JSON.stringify(o)); this._sync(); },
 
   // ========== 自定义书籍管理 ==========
   getCustomBooks: function() {

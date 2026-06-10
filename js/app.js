@@ -783,6 +783,18 @@
       };
     });
 
+    // 云端刷新
+    document.getElementById('btn-cloud-refresh').onclick = function() {
+      var btn = document.getElementById('btn-cloud-refresh');
+      btn.textContent = '⏳';
+      Sync.forceRefresh(function(ok) {
+        btn.textContent = ok ? '☁️ 已同步' : '☁️ 离线';
+        renderAdminPanel();
+        updateBookshelfBadge();
+        setTimeout(function() { btn.textContent = '☁️ 刷新'; }, 2000);
+      });
+    };
+
     // 导出数据
     document.getElementById('btn-export').onclick = function() {
       var json = Store.exportAll();
