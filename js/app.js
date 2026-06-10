@@ -655,16 +655,21 @@
     var fileInput = document.getElementById('upload-file');
     if (!uploadArea || !fileInput) return;
 
-    uploadArea.addEventListener('click', function() { fileInput.click(); });
+    // 文件选择（透明覆盖层直接点击）
+    fileInput.addEventListener('change', function() {
+      if (this.files[0]) parseFile(this.files[0]);
+      this.value = ''; // 允许重复选择同一文件
+    });
+    // 拖拽（监听 uploadArea，input 覆盖层不拦截拖拽事件）
     uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = '#4A90D9'; });
     uploadArea.addEventListener('dragleave', function() { this.style.borderColor = '#ddd'; });
     uploadArea.addEventListener('drop', function(e) {
       e.preventDefault(); this.style.borderColor = '#ddd';
       if (e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]);
     });
-    fileInput.addEventListener('change', function() {
-      if (this.files[0]) parseFile(this.files[0]);
-    });
+    // 防止拖拽文件时 input 拦截
+    fileInput.addEventListener('dragover', function(e) { e.stopPropagation(); });
+    fileInput.addEventListener('drop', function(e) { e.stopPropagation(); });
 
     document.getElementById('btn-upload').addEventListener('click', function() {
       if (!_parsedData) return;

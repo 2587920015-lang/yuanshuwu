@@ -185,8 +185,8 @@
     <div class="upload-area" id="upload-area">
       <div class="upload-hint">📁 点击或拖拽 .txt 文件到此处</div>
       <div class="upload-sub">自动识别书名、作者、分类，无需手动填写</div>
-      <input type="file" id="upload-file" accept=".txt" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;">
-      <div id="upload-file-name" style="font-size:13px;color:#4A90D9;margin-top:8px;"></div>
+      <input type="file" id="upload-file" accept=".txt" style="display:block;width:100%;height:100%;position:absolute;top:0;left:0;opacity:0;cursor:pointer;">
+      <div id="upload-file-name" style="font-size:13px;color:#4A90D9;margin-top:8px;position:relative;z-index:1;"></div>
     </div>
     <div id="upload-preview" style="display:none;margin-top:12px;">
       <div class="upload-preview-card">
