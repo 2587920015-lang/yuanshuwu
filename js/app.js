@@ -729,9 +729,9 @@
     }
     document.getElementById('admin-pending-list').innerHTML = pendingHtml;
 
-    // 已处理列表 - 显示完整订单详情
-    document.querySelector('#view-admin .section-title:last-of-type').textContent =
-      '📋 已审核订单（共' + processedOrders.length + '单）';
+    // 已处理列表
+    var titleEl = document.querySelector('#view-admin .section-title:last-of-type');
+    if (titleEl) titleEl.textContent = '📋 已审核订单（共' + processedOrders.length + '单）';
     var processedHtml = '';
     processedOrders.forEach(function(o) {
       var stClass = o.status === 'paid' ? 'paid' : 'rejected';

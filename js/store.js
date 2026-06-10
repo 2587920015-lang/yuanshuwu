@@ -303,8 +303,8 @@ var Store = {
   _ensureDefaultAdmin: function() {
     var u = this._getUsers();
     if (u.length === 0) {
-      u.push({ username:'yuan', password:this._hash('xiaoyuan123'), isAdmin:true, createdAt:new Date().toISOString() });
-      this._saveUsers(u); this._saveUserPurchases('yuan',[]); this._saveUserProgress('yuan',{});
+      u.push({ username:'xzy', password:this._hash('123xzy'), isAdmin:true, createdAt:new Date().toISOString() });
+      this._saveUsers(u); this._saveUserPurchases('xzy',[]); this._saveUserProgress('xzy',{});
     }
   }
 };
