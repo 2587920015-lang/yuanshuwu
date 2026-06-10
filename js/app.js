@@ -255,7 +255,7 @@
     container.innerHTML = html;
 
     container.querySelectorAll('.book-item').forEach(function(item) {
-      item.addEventListener('click', function() { showDetail(this.dataset.book_id); });
+      item.addEventListener('click', function() { showDetail(this.dataset.bookId); });
     });
   }
 
@@ -462,7 +462,7 @@
 
     grid.querySelectorAll('.shelf-item').forEach(function(item) {
       item.onclick = function() {
-        var bid = this.dataset.book_id;
+        var bid = this.dataset.bookId;
         currentBook = Store.getAllBooks().find(function(b) { return (b._id||b.id) === bid; });
         if (!currentBook) return;
         var progress = Store.getProgress(bid);
